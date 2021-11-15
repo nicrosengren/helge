@@ -1,0 +1,18 @@
+[package]
+name = "helge"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+r2d2 = "0.8.9"
+thiserror = "1.0.30"
+tokio = { version = "1.13.0", features = [ "rt" ] }
+diesel = { version = "1.4.8", features = [ "postgres", "r2d2" ] }
+
+
+
+[dev-dependencies]
+tokio = { version = "1.13.0", features = [ "rt-multi-thread", "macros" ] }
+anyhow = "1.0.45"
