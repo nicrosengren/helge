@@ -21,31 +21,8 @@
 use diesel::r2d2::ConnectionManager;
 use r2d2::ManageConnection;
 
-/// General Errors that can occur when running queries using Helge.
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("Query Error: {0}")]
-    Query(#[from] diesel::result::Error),
-
-    #[error("Runtime Error. Failed to join blocking thread: {0}")]
-    Runtime(#[from] tokio::task::JoinError),
-
-    #[error("Pool Error {0}")]
-    Pool(#[from] r2d2::Error),
-}
-
-/// ConnectionError can only occur when creating Helge.
-#[derive(Debug, thiserror::Error)]
-pub enum ConnectionError {
-    #[error("Connection failed: {0}")]
-    Connection(diesel::result::ConnectionError),
-
-    #[error("Could not Ping database: {0}")]
-    PingFailed(diesel::result::Error),
-
-    #[error("Could not create Connection Pool: {0}")]
-    PoolSettings(#[from] r2d2::Error),
-}
+mod error;
+pub use error::{ConnectionError, Error};
 
 /// The main wrapper, simply contains an r2d2::Pool
 pub struct Helge<C>
@@ -97,7 +74,7 @@ where
     pub async fn query<T, F>(&self, f: F) -> std::result::Result<T, Error>
     where
         T: Send + 'static,
-        F: Fn(&C) -> std::result::Result<T, diesel::result::Error> + Send + 'static,
+        F: FnOnce(&C) -> std::result::Result<T, diesel::result::Error> + Send + 'static,
     {
         let pool = self.pool.clone();
 
@@ -114,7 +91,7 @@ where
     where
         T: Send + 'static,
         E: From<Error> + Send + 'static,
-        F: Fn(&C) -> std::result::Result<T, E> + Send + 'static,
+        F: FnOnce(&C) -> std::result::Result<T, E> + Send + 'static,
     {
         let pool = self.pool.clone();
 
