@@ -5,6 +5,9 @@ edition = "2021"
 license = "MIT"
 repository = "https://github.com/nicrgren/helge"
 readme = "README.md"
+description = """
+Tiny wrapper around r2d2::Pool and diesel ConnectionManager to ease use in async contexts
+"""
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
