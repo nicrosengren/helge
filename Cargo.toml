@@ -15,11 +15,11 @@ Tiny wrapper around r2d2::Pool and diesel ConnectionManager to ease use in async
 [dependencies]
 r2d2 = "0.8.9"
 thiserror = "1.0.30"
-tokio = { version = "1.13.0", features = [ "rt" ] }
+tokio = { version = "1.15.0", features = [ "rt" ] }
 diesel = { version = "1.4.8", features = [ "postgres", "r2d2" ] }
 
 
 
 [dev-dependencies]
-tokio = { version = "1.13.0", features = [ "rt-multi-thread", "macros" ] }
+tokio = { version = "1.15.0", features = [ "rt-multi-thread", "macros" ] }
 anyhow = "1.0.45"

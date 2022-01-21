@@ -56,7 +56,7 @@ where
             diesel::r2d2::Error::QueryError(err) => ConnectionError::PingFailed(err),
         })?;
 
-        let pool = diesel::r2d2::Builder::new().build(manager)?;
+        let pool = diesel::r2d2::Builder::new().max_size(5).build(manager)?;
 
         Ok(Self { pool })
     }
