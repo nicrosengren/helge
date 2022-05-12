@@ -18,8 +18,7 @@
 //!
 //! ```
 
-use diesel::r2d2::ConnectionManager;
-use r2d2::ManageConnection;
+use diesel::r2d2::{self, ConnectionManager, ManageConnection, R2D2Connection};
 
 mod error;
 pub use error::{ConnectionError, Error};
@@ -27,14 +26,14 @@ pub use error::{ConnectionError, Error};
 /// The main wrapper, simply contains an r2d2::Pool
 pub struct Helge<C>
 where
-    C: diesel::Connection + Send + 'static,
+    C: R2D2Connection + Send + 'static,
 {
-    pool: r2d2::Pool<diesel::r2d2::ConnectionManager<C>>,
+    pool: r2d2::Pool<ConnectionManager<C>>,
 }
 
 impl<C> Clone for Helge<C>
 where
-    C: diesel::Connection + Send + 'static,
+    C: R2D2Connection + Send + 'static,
 {
     fn clone(&self) -> Self {
         Self {
@@ -45,7 +44,7 @@ where
 
 impl<C> Helge<C>
 where
-    C: diesel::Connection + Send + 'static,
+    C: R2D2Connection + Send + 'static,
 {
     /// Create a new Helge with default settings
     pub fn new(database_uri: impl Into<String>) -> Result<Self, ConnectionError> {
@@ -56,7 +55,10 @@ where
             diesel::r2d2::Error::QueryError(err) => ConnectionError::PingFailed(err),
         })?;
 
-        let pool = diesel::r2d2::Builder::new().max_size(5).build(manager)?;
+        let pool = diesel::r2d2::Builder::new()
+            .max_size(5)
+            .build(manager)
+            .map_err(|err| ConnectionError::PoolSettings(err.to_string()))?;
 
         Ok(Self { pool })
     }
@@ -68,20 +70,20 @@ where
     pub fn get_conn(
         &self,
     ) -> Result<r2d2::PooledConnection<diesel::r2d2::ConnectionManager<C>>, Error> {
-        self.pool.get().map_err(Error::from)
+        self.pool.get().map_err(|err| Error::Pool(err.to_string()))
     }
 
     pub async fn query<T, F>(&self, f: F) -> std::result::Result<T, Error>
     where
         T: Send + 'static,
-        F: FnOnce(&C) -> std::result::Result<T, diesel::result::Error> + Send + 'static,
+        F: FnOnce(&mut C) -> std::result::Result<T, diesel::result::Error> + Send + 'static,
     {
         let pool = self.pool.clone();
 
         tokio::task::spawn_blocking(move || {
-            let conn = pool.get().map_err(Error::Pool)?;
+            let mut conn = pool.get().map_err(|err| Error::Pool(err.to_string()))?;
 
-            f(&conn).map_err(Error::Query)
+            f(&mut conn).map_err(Error::Query)
         })
         .await
         .map_err(Error::Runtime)?
@@ -91,14 +93,16 @@ where
     where
         T: Send + 'static,
         E: From<Error> + Send + 'static,
-        F: FnOnce(&C) -> std::result::Result<T, E> + Send + 'static,
+        F: FnOnce(&mut C) -> std::result::Result<T, E> + Send + 'static,
     {
         let pool = self.pool.clone();
 
         tokio::task::spawn_blocking(move || {
-            let conn = pool.get().map_err(|err| E::from(Error::Pool(err)))?;
+            let mut conn = pool
+                .get()
+                .map_err(|err| E::from(Error::Pool(err.to_string())))?;
 
-            f(&conn)
+            f(&mut conn)
         })
         .await
         .map_err(|err: tokio::task::JoinError| E::from(Error::Runtime(err)))?

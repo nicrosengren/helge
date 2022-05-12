@@ -1,3 +1,5 @@
+use diesel::r2d2;
+
 /// General Errors that can occur when running queries using Helge.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -8,7 +10,13 @@ pub enum Error {
     Runtime(#[from] tokio::task::JoinError),
 
     #[error("Pool Error {0}")]
-    Pool(#[from] r2d2::Error),
+    Pool(String),
+}
+
+impl From<r2d2::Error> for Error {
+    fn from(err: r2d2::Error) -> Self {
+        Self::Pool(err.to_string())
+    }
 }
 
 /// ConnectionError can only occur when creating Helge.
@@ -21,5 +29,11 @@ pub enum ConnectionError {
     PingFailed(diesel::result::Error),
 
     #[error("Could not create Connection Pool: {0}")]
-    PoolSettings(#[from] r2d2::Error),
+    PoolSettings(String),
+}
+
+impl From<r2d2::Error> for ConnectionError {
+    fn from(err: r2d2::Error) -> Self {
+        Self::PoolSettings(err.to_string())
+    }
 }
