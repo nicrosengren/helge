@@ -1,6 +1,6 @@
 [package]
 name = "helge"
-version = "2.0.0-rc.0"
+version = "2.0.0-rc.1"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/nicrgren/helge"
@@ -14,10 +14,10 @@ Tiny wrapper around r2d2::Pool and diesel ConnectionManager to ease use in async
 
 [dependencies]
 thiserror = "1.0.30"
-tokio = { version = "1.18.2", features = [ "rt" ] }
-diesel = { version = "2.0.0-rc.0", features = [ "postgres", "r2d2" ] }
+tokio = { version = "1.20", features = [ "rt" ] }
+diesel = { version = "2.0.0-rc.1", features = [ "postgres", "r2d2" ] }
 
 
 
 [dev-dependencies]
-tokio = { version = "1.18.2", features = [ "rt-multi-thread", "macros" ] }
+tokio = { version = "1.20", features = [ "rt-multi-thread", "macros" ] }
