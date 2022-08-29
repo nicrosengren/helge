@@ -1,8 +1,4 @@
-use anyhow::Error;
 use helge::Helge;
-
-#[macro_use]
-extern crate diesel;
 
 use diesel::prelude::*;
 
@@ -15,24 +11,27 @@ table! {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "users"]
+#[diesel(table_name = users)]
 struct NewUser {
     name: String,
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
+async fn main() {
     let database_url = "postgres://localhost/helgeexample";
 
-    let helge = Helge::<diesel::PgConnection>::new(database_url)?;
+    let helge = Helge::<diesel::PgConnection>::new(database_url).expect("creating Helge");
 
-    let conn = helge.get_conn()?;
+    let mut conn = helge.get_conn().expect("getting connection");
 
-    diesel::sql_query("DROP TABLE IF EXISTS users").execute(&conn)?;
+    diesel::sql_query("DROP TABLE IF EXISTS users")
+        .execute(&mut conn)
+        .expect("dropping table `users`");
     diesel::sql_query(
         "CREATE TABLE IF NOT EXISTS users(id SERIAL PRIMARY KEY, name VARCHAR NOT NULL)",
     )
-    .execute(&conn)?;
+    .execute(&mut conn)
+    .expect("creating table `users`");
 
     helge
         .query(|conn| {
@@ -42,13 +41,13 @@ async fn main() -> Result<(), Error> {
                 })
                 .execute(conn)
         })
-        .await?;
+        .await
+        .expect("inserting users");
 
     let user = helge
         .query(|conn| users::table.get_results::<(i32, String)>(conn))
-        .await?;
+        .await
+        .expect("reading users");
 
     println!("Fetched {:?}", user);
-
-    Ok(())
 }

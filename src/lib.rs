@@ -4,17 +4,37 @@
 //! <br>
 //!
 //! ## Example
+
+//! ```rust,no_run
+//! use diesel::prelude::*;
+//! use helge::{Error, Helge};
 //!
-//! ```
+//! diesel::table! {
+//!     users {
+//! 	    id -> Integer,
+//! 	    name -> Varchar,
+//!     }
+//! }
 //!
-//! let helge = Helge::<diesel::PgConnection>::new("postgres://localhost/somedatabase")?;
-//! helge.query(|conn| {
-//!     diesel::insert_into(users::table)
-//!         .values(&NewUser {
-//!             name: String::from("Helge"),
-//!         })
-//!         .execute(conn)
-//! }).await?;
+//! #[derive(Debug, Insertable)]
+//! #[diesel(table_name = users)]
+//! struct NewUser {
+//!     name: String,
+//! }
+//!
+//!
+//! async fn query() -> Result<(), helge::Error> {
+//!   let helge = Helge::<diesel::PgConnection>::new("postgres://localhost/somedatabase")
+//!                            .expect("connecting Helge");
+//!   helge.query(|conn| {
+//!       diesel::insert_into(users::table)
+//!           .values(&NewUser {
+//!               name: String::from("Helge"),
+//!           })
+//!           .execute(conn)
+//!   }).await;
+//!   Ok(())
+//! }
 //!
 //! ```
 

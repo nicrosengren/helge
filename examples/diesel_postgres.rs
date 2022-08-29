@@ -1,8 +1,6 @@
-use anyhow::Error;
 use diesel::r2d2::{ConnectionManager, ManageConnection};
 use helge::Helge;
 
-#[macro_use]
 extern crate diesel;
 
 use diesel::prelude::*;
@@ -16,26 +14,31 @@ table! {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "users"]
+#[diesel(table_name = users)]
 struct NewUser {
     name: String,
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
+async fn main() {
     let database_url = "postgres://localhost/helgeexample";
 
     let connection_manager = ConnectionManager::<diesel::PgConnection>::new(database_url);
-    let conn = connection_manager.connect()?;
+    let mut conn = connection_manager.connect().expect("Connecting");
+    diesel::sql_query("DROP TABLE IF EXISTS users")
+        .execute(&mut conn)
+        .expect("dropping table `users`");
 
-    diesel::sql_query("DROP TABLE IF EXISTS users").execute(&conn)?;
     diesel::sql_query(
         "CREATE TABLE IF NOT EXISTS users(id SERIAL PRIMARY KEY, name VARCHAR NOT NULL)",
     )
-    .execute(&conn)?;
+    .execute(&mut conn)
+    .expect("creating table `users`");
 
     // Create Helge from a Builder, allowing custimization of the Pool.
-    let pool = diesel::r2d2::Builder::new().build(connection_manager)?;
+    let pool = diesel::r2d2::Builder::new()
+        .build(connection_manager)
+        .expect("Building r2d2 pool");
 
     let pool = Helge::from_pool(pool);
 
@@ -46,13 +49,13 @@ async fn main() -> Result<(), Error> {
             })
             .execute(conn)
     })
-    .await?;
+    .await
+    .expect("inserting users");
 
     let helge = pool
         .query(|conn| users::table.get_results::<(i32, String)>(conn))
-        .await?;
+        .await
+        .expect("reading users");
 
     println!("Fetched {:?}", helge);
-
-    Ok(())
 }
